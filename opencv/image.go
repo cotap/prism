@@ -36,7 +36,7 @@ func (img *Image) Resize(width, height int) (*Image, error) {
 
 	size := C.CvSize { width: C.int(width), height: C.int(height) }
 	resizedIpl = C.cvCreateImage(size , img.iplImage.depth, img.iplImage.nChannels)
-	C.cvResize(unsafe.Pointer(img.iplImage), unsafe.Pointer(resizedIpl), C.int(C.CV_INTER_LANCZOS4))
+	C.cvResize(unsafe.Pointer(img.iplImage), unsafe.Pointer(resizedIpl), C.int(C.CV_INTER_CUBIC))
 
 	resizedImg, err := imageFromIplImage(resizedIpl)
 	if err != nil {
