@@ -8,6 +8,7 @@ import(
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 
 	"github.com/cotap/prism/opencv"
 )
@@ -31,8 +32,9 @@ func main() {
 		panic(err)
 	}
 
-	img, err = img.Fit(100, 800)
-	// img, err = img.Resize(int(os.Args[2]), int(os.Args[3]))
+	width, _ := strconv.Atoi(os.Args[2])
+	height, _ := strconv.Atoi(os.Args[3])
+	img, err = img.Fit(width, height)
 	if (err != nil) {
 		panic(err)
 	}
