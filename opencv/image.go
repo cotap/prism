@@ -6,9 +6,9 @@ package opencv
 //#include "opencv.h"
 import "C"
 
-import(
+import (
 	"errors"
-	goimage "image"
+	"image"
 	"image/color"
 	"runtime"
 	"unsafe"
@@ -17,38 +17,47 @@ import(
 // Wrap IplImage
 
 type Image struct {
-	config   goimage.Config
 	iplImage *C.IplImage
 }
 
-func Decode(b []byte) (*Image, error) {
+func newImage(iplImage *C.IplImage) *Image {
+	image := &Image{iplImage}
+	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
+	return image
+}
+
+func Decode(b []byte) (img *Image, err error) {
+	defer recoverWithError(&err)
+
 	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
 	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
 
 	iplImage := C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_COLOR)
 	C.cvReleaseMat(&cvMat)
 
-	return imageFromIplImage(iplImage)
+	return newImage(iplImage), err
 }
 
-func (img *Image) Resize(width, height int) (*Image, error) {
-	var resizedIpl *C.IplImage
+func (img *Image) Resize(width, height int) (resizedImg *Image, err error) {
+	defer recoverWithError(&err)
 
-	size := C.CvSize { width: C.int(width), height: C.int(height) }
-	resizedIpl = C.cvCreateImage(size , img.iplImage.depth, img.iplImage.nChannels)
-	C.cvResize(unsafe.Pointer(img.iplImage), unsafe.Pointer(resizedIpl), C.int(C.CV_INTER_CUBIC))
+	resizedImg = img.cloneResizeTarget(width, height)
 
-	resizedImg, err := imageFromIplImage(resizedIpl)
-	if err != nil {
-		return nil, err
-	}
+	C.cvResize(
+		unsafe.Pointer(img.iplImage),
+		unsafe.Pointer(resizedImg.iplImage),
+		C.int(C.CV_INTER_AREA),
+	)
 
-	return resizedImg, nil
+	return
 }
 
-func (img *Image) Fit(width, height int) (*Image, error) {
+func (img *Image) Fit(width, height int) (resizedImg *Image, err error) {
+	defer recoverWithError(&err)
+
 	if width <= 0 || height <= 0 {
-		return nil, errors.New("dimensions less than 0")
+		resizedImg = img
+		return
 	}
 
 	bounds := img.Bounds()
@@ -56,7 +65,8 @@ func (img *Image) Fit(width, height int) (*Image, error) {
 	srcH := bounds.Dy()
 
 	if srcW <= width && srcH <= height {
-		return img, nil
+		resizedImg = img
+		return
 	}
 
 	srcAspectRatio := float64(srcW) / float64(srcH)
@@ -71,7 +81,9 @@ func (img *Image) Fit(width, height int) (*Image, error) {
 		newW = int(float64(newH) * srcAspectRatio)
 	}
 
-	return img.Resize(newW, newH)
+	resizedImg, err = img.Resize(newW, newH)
+
+	return
 }
 
 func (img *Image) Release() {
@@ -81,53 +93,58 @@ func (img *Image) Release() {
 	}
 }
 
-
 // image.Image interface
 
 func (img *Image) ColorModel() color.Model {
-	return img.config.ColorModel
+	if img.iplImage.nChannels == 1 {
+		return color.GrayModel
+	} else {
+		return color.RGBAModel
+	}
 }
 
 func (img *Image) At(x, y int) color.Color {
 	scalar := C.cvGet2D(unsafe.Pointer(img.iplImage), C.int(y), C.int(x))
 
 	if img.iplImage.nChannels == 1 {
-		return color.Gray { uint8(scalar.val[0]) }
+		return color.Gray{uint8(scalar.val[0])}
 	} else {
 		// Convert OpenCV's BGR representation to RGB, which image.Image expects
-		return color.RGBA {
+		return color.RGBA{
 			uint8(scalar.val[2]), uint8(scalar.val[1]), uint8(scalar.val[0]), 255,
 		}
 	}
 }
 
-func (img *Image) Bounds() goimage.Rectangle {
-	return goimage.Rect(0, 0, img.config.Width, img.config.Height)
+func (img *Image) Bounds() image.Rectangle {
+	size := C.cvGetSize(unsafe.Pointer(img.iplImage))
+	return image.Rect(0, 0, int(size.width), int(size.height))
 }
 
+// create target image
 
-// init from *C.IplImage
+func (img *Image) cloneTarget() *Image {
+	return img.cloneResizeTarget(img.Bounds().Size().X, img.Bounds().Size().Y)
+}
 
-func imageFromIplImage(iplImage *C.IplImage) (*Image, error) {
-	var model color.Model
+// create target image with new size, but same color depth and channels
 
-	switch(iplImage.nChannels) {
-		case 1: model = color.GrayModel
-		case 3: model = color.RGBAModel
-		case 4: model = color.RGBAModel
+func (img *Image) cloneResizeTarget(width, height int) *Image {
+	size := C.CvSize{width: C.int(width), height: C.int(height)}
+	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
+	return newImage(newIpl)
+}
+
+func recoverWithError(err *error) {
+	if r := recover(); r != nil {
+		if _, ok := r.(runtime.Error); ok {
+			panic(r)
+		}
+		switch r.(type) {
+		case string:
+			*err = errors.New(r.(string))
 		default:
-			return nil, errors.New("Unsupported image type - number of channels")
+			*err = r.(error)
+		}
 	}
-
-	size := C.cvGetSize(unsafe.Pointer(iplImage))
-	config := goimage.Config {
-		ColorModel: model,
-		Width: int(size.width),
-		Height: int(size.height),
-	}
-
-	image := &Image { config, iplImage }
-	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
-
-	return image, nil
 }
