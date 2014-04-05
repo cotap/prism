@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"image/jpeg"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -20,13 +20,13 @@ func main() {
 
 	// load original
 	name := os.Args[1]
-	b, err := ioutil.ReadFile(name)
+	f, err := os.Open(name)
 	if err != nil {
 		panic(err)
 	}
 
 	// resize
-	img, err := opencv.Decode(b)
+	img, err := opencv.Decode(io.Reader(f))
 	if err != nil {
 		panic(err)
 	}

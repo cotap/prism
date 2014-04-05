@@ -10,6 +10,8 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"io"
+	"io/ioutil"
 	"runtime"
 	"unsafe"
 )
@@ -26,16 +28,21 @@ func newImage(iplImage *C.IplImage) *Image {
 	return image
 }
 
-func Decode(b []byte) (img *Image, err error) {
+func Decode(r io.Reader) (img *Image, err error) {
 	defer recoverWithError(&err)
+
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return
+	}
 
 	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
 	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
 
-	iplImage := C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_COLOR)
+	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_COLOR))
 	C.cvReleaseMat(&cvMat)
 
-	return newImage(iplImage), err
+	return
 }
 
 func (img *Image) Resize(width, height int) (resizedImg *Image, err error) {
