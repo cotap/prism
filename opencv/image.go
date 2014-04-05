@@ -86,6 +86,67 @@ func (img *Image) Fit(width, height int) (resizedImg *Image, err error) {
 	return
 }
 
+func (img *Image) Rotate90() (rotatedImg *Image, err error) {
+	defer recoverWithError(&err)
+
+	rotatedImg = img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+
+	C.cvTranspose(
+		unsafe.Pointer(img.iplImage),
+		unsafe.Pointer(rotatedImg.iplImage),
+	)
+
+	return
+}
+
+func (img *Image) Rotate180() (rotatedImg *Image, err error) {
+	rotatedImg, err = img.Flip(-1)
+	return
+}
+
+func (img *Image) Rotate270() (rotatedImg *Image, err error) {
+	defer recoverWithError(&err)
+
+	rotatedImg = img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+
+	C.cvTranspose(
+		unsafe.Pointer(img.iplImage),
+		unsafe.Pointer(rotatedImg.iplImage),
+	)
+
+	C.cvFlip(
+		unsafe.Pointer(rotatedImg.iplImage),
+		unsafe.Pointer(rotatedImg.iplImage),
+		C.int(1),
+	)
+
+	return
+}
+
+func (img *Image) FlipH() (flippedImg *Image, err error) {
+	flippedImg, err = img.Flip(1)
+	return
+}
+
+func (img *Image) FlipV() (flippedImg *Image, err error) {
+	flippedImg, err = img.Flip(0)
+	return
+}
+
+func (img *Image) Flip(axis int) (flippedImg *Image, err error) {
+	defer recoverWithError(&err)
+
+	flippedImg = img.cloneTarget()
+
+	C.cvFlip(
+		unsafe.Pointer(img.iplImage),
+		unsafe.Pointer(flippedImg.iplImage),
+		C.int(axis),
+	)
+
+	return
+}
+
 func (img *Image) Release() {
 	if img.iplImage != nil {
 		C.cvReleaseImage(&img.iplImage)
