@@ -25,7 +25,7 @@ func Decode(r io.Reader) (img *Image, err error) {
 	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
 	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
 
-	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_COLOR))
+	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED))
 	C.cvReleaseMat(&cvMat)
 
 	return

@@ -48,9 +48,12 @@ func (img *Image) At(x, y int) color.Color {
 	if img.iplImage.nChannels == 1 {
 		return color.Gray{uint8(scalar.val[0])}
 	} else {
-		// Convert OpenCV's BGR representation to RGB, which image.Image expects
+		// Convert OpenCV's BGRA representation to RGBA, which image.Image expects
 		return color.RGBA{
-			uint8(scalar.val[2]), uint8(scalar.val[1]), uint8(scalar.val[0]), 255,
+			uint8(scalar.val[2]),
+			uint8(scalar.val[1]),
+			uint8(scalar.val[0]),
+			uint8(scalar.val[3]),
 		}
 	}
 }
