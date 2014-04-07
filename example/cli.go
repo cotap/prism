@@ -24,16 +24,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	width, _ := strconv.Atoi(os.Args[2])
+	height, _ := strconv.Atoi(os.Args[3])
 
-	// resize
 	img, err := prism.Decode(io.Reader(f))
 	if err != nil {
 		panic(err)
 	}
 
-	width, _ := strconv.Atoi(os.Args[2])
-	height, _ := strconv.Atoi(os.Args[3])
-	img, err = prism.Fit(img, width, height)
+	reoriented, err := prism.Reorient(img)
+	if err != nil {
+		panic(err)
+	}
+
+	resized, err := prism.Fit(reoriented, width, height)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +45,7 @@ func main() {
 	// write resized
 	w, _ := os.Create("resized.jpg")
 	defer w.Close()
-	jpeg.Encode(w, img, &jpeg.Options{Quality: 90})
+	jpeg.Encode(w, resized, &jpeg.Options{Quality: 90})
 
 	// open preview
 	err = exec.Command("open", "-a", "/Applications/Preview.app", w.Name()).Run()
