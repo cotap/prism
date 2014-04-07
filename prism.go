@@ -113,6 +113,12 @@ func Rotate90(img *Image) (rotatedImg *Image, err error) {
 		unsafe.Pointer(rotatedImg.iplImage),
 	)
 
+	C.cvFlip(
+		unsafe.Pointer(rotatedImg.iplImage),
+		unsafe.Pointer(rotatedImg.iplImage),
+		C.int(0),
+	)
+
 	return
 }
 
