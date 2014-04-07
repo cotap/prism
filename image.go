@@ -7,22 +7,47 @@ package prism
 import "C"
 
 import (
+	"bytes"
 	"image"
 	"image/color"
+	"io"
+	"io/ioutil"
 	"runtime"
 	"unsafe"
+
+	"github.com/rwcarlsen/goexif/exif"
 )
 
 // Wrap IplImage
 
 type Image struct {
 	iplImage *C.IplImage
+	exif     *exif.Exif
 }
 
-func newImage(iplImage *C.IplImage) *Image {
-	image := &Image{iplImage}
+func newImage(iplImage *C.IplImage, meta *exif.Exif) *Image {
+	image := &Image{iplImage, meta}
 	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
 	return image
+}
+
+func Decode(r io.Reader) (img *Image, err error) {
+	defer recoverWithError(&err)
+
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return
+	}
+
+	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
+	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
+
+	meta, _ := exif.Decode(bytes.NewReader(b))
+
+	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED), meta)
+	C.cvReleaseMat(&cvMat)
+
+	return
 }
 
 func (img *Image) Release() {
@@ -74,5 +99,5 @@ func (img *Image) cloneTarget() *Image {
 func (img *Image) cloneResizeTarget(width, height int) *Image {
 	size := C.CvSize{width: C.int(width), height: C.int(height)}
 	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
-	return newImage(newIpl)
+	return newImage(newIpl, img.exif)
 }

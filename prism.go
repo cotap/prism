@@ -8,28 +8,11 @@ import "C"
 
 import (
 	"errors"
-	"io"
-	"io/ioutil"
 	"runtime"
 	"unsafe"
+
+	"github.com/rwcarlsen/goexif/exif"
 )
-
-func Decode(r io.Reader) (img *Image, err error) {
-	defer recoverWithError(&err)
-
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
-	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
-
-	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED))
-	C.cvReleaseMat(&cvMat)
-
-	return
-}
 
 func Resize(img *Image, width, height int) (resizedImg *Image, err error) {
 	defer recoverWithError(&err)
@@ -43,6 +26,17 @@ func Resize(img *Image, width, height int) (resizedImg *Image, err error) {
 	)
 
 	return
+}
+
+func Reorient(img *Image) (*Image, error) {
+	if img.exif != nil {
+		reorientedImg, err := reorientByExif(img)
+		if err != nil {
+			return nil, err
+		}
+		return reorientedImg, nil
+	}
+	return img, nil
 }
 
 func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
@@ -77,6 +71,36 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 	resizedImg, err = Resize(img, newW, newH)
 
 	return
+}
+
+func reorientByExif(img *Image) (*Image, error) {
+	var err error
+
+	orientation, _ := img.exif.Get(exif.Orientation)
+	switch orientation.Int(0) {
+	case 2:
+		img, err = FlipH(img)
+	case 3:
+		img, err = Rotate180(img)
+	case 4:
+		img, err = FlipV(img)
+	case 5:
+		img, err = Rotate270(img)
+		if err == nil {
+			img, err = FlipH(img)
+		}
+	case 6:
+		img, err = Rotate270(img)
+	case 7:
+		img, err = Rotate90(img)
+		if err == nil {
+			img, err = FlipH(img)
+		}
+	case 8:
+		img, err = Rotate90(img)
+	}
+
+	return img, err
 }
 
 func Rotate90(img *Image) (rotatedImg *Image, err error) {
