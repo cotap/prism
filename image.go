@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"image/color"
 	"io"
@@ -44,7 +45,13 @@ func Decode(r io.Reader) (img *Image, err error) {
 
 	meta, _ := exif.Decode(bytes.NewReader(b))
 
-	img = newImage(C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED), meta)
+	iplImage := C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED)
+	if iplImage == nil {
+		err = errors.New("Bad image")
+		return
+	}
+
+	img = newImage(iplImage, meta)
 	C.cvReleaseMat(&cvMat)
 
 	return
