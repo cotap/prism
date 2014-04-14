@@ -42,7 +42,7 @@ func Reorient(img *Image) (*Image, error) {
 func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 	defer recoverWithError(&err)
 
-	if width <= 0 || height <= 0 {
+	if width <= 0 && height <= 0 {
 		resizedImg = img
 		return
 	}
@@ -54,6 +54,14 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 	if srcW <= width && srcH <= height {
 		resizedImg = img
 		return
+	}
+
+	if width == 0 {
+		width = srcW
+	}
+
+	if height == 0 {
+		height = srcH
 	}
 
 	srcAspectRatio := float64(srcW) / float64(srcH)
