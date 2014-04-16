@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"log"
 	"os"
@@ -17,6 +19,8 @@ func main() {
 		fmt.Println("Usage: prism IMAGE")
 		os.Exit(1)
 	}
+	width, _ := strconv.Atoi(os.Args[2])
+	height, _ := strconv.Atoi(os.Args[3])
 
 	// load original
 	name := os.Args[1]
@@ -24,8 +28,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	width, _ := strconv.Atoi(os.Args[2])
-	height, _ := strconv.Atoi(os.Args[3])
+	defer f.Close()
+
+	_, format, _ := image.DecodeConfig(io.Reader(f))
+	f.Seek(0, 0)
 
 	img, err := prism.Decode(io.Reader(f))
 	if err != nil {
@@ -43,9 +49,19 @@ func main() {
 	}
 
 	// write resized
-	w, _ := os.Create("resized.jpg")
+	w, _ := os.Create("resized." + format)
 	defer w.Close()
-	jpeg.Encode(w, resized, &jpeg.Options{Quality: 90})
+
+	switch format {
+	case "jpeg":
+		err = jpeg.Encode(w, resized, &jpeg.Options{Quality: 85})
+	case "png":
+		err = png.Encode(w, resized)
+	}
+
+	if err != nil {
+		panic(err)
+	}
 
 	// open preview
 	err = exec.Command("open", "-a", "/Applications/Preview.app", w.Name()).Run()

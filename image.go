@@ -74,20 +74,29 @@ func (img *Image) ColorModel() color.Model {
 	}
 }
 
-func (img *Image) At(x, y int) color.Color {
+func (img *Image) At(x, y int) (c color.Color) {
 	scalar := C.cvGet2D(unsafe.Pointer(img.iplImage), C.int(y), C.int(x))
 
-	if img.iplImage.nChannels == 1 {
-		return color.Gray{uint8(scalar.val[0])}
-	} else {
-		// Convert OpenCV's BGRA representation to RGBA, which image.Image expects
-		return color.RGBA{
+	// Convert OpenCV's BGRA representation to RGBA, which image.Image expects
+	switch img.iplImage.nChannels {
+	case 1:
+		c = color.Gray{uint8(scalar.val[0])}
+	case 4:
+		c = color.RGBA{
 			uint8(scalar.val[2]),
 			uint8(scalar.val[1]),
 			uint8(scalar.val[0]),
 			uint8(scalar.val[3]),
 		}
+	default:
+		c = color.RGBA{
+			uint8(scalar.val[2]),
+			uint8(scalar.val[1]),
+			uint8(scalar.val[0]),
+			uint8(255),
+		}
 	}
+	return
 }
 
 func (img *Image) Bounds() image.Rectangle {
