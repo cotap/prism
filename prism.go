@@ -84,7 +84,11 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 func reorientByExif(img *Image) (*Image, error) {
 	var err error
 
-	orientation, _ := img.exif.Get(exif.Orientation)
+	orientation, err := img.exif.Get(exif.Orientation)
+	if err != nil {
+		return nil, err
+	}
+
 	switch orientation.Int(0) {
 	case 2:
 		img, err = FlipH(img)
