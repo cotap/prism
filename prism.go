@@ -89,7 +89,12 @@ func reorientByExif(img *Image) (*Image, error) {
 		return nil, err
 	}
 
-	switch orientation.Int(0) {
+	orientationValue, err := orientation.Int(0)
+	if err != nil {
+		return nil, err
+	}
+
+	switch orientationValue {
 	case 2:
 		img, err = FlipH(img)
 	case 3:
