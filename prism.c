@@ -8,6 +8,11 @@ int isRecoverableError(char* errorStr) {
   return 0;
 }
 
+void printError(char* errorStr) {
+  fprintf(stderr, "prism: %s\n", errorStr);
+  fflush(stderr);
+}
+
 IplImage* prismDecode(void* data, unsigned int dataSize) {
   int err;
   IplImage* iplImage;
@@ -28,7 +33,7 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
       return iplImage;
     }
 
-    printf("prism error: %s\n", tjGetErrorStr());
+    printError(tjGetErrorStr());
     return NULL;
   }
 
@@ -48,7 +53,7 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
     char* errorStr = tjGetErrorStr();
     if (!isRecoverableError(errorStr)) {
       cvFree(&buffer);
-      printf("prism error: %s\n", errorStr);
+      printError(errorStr);
       return NULL;
     }
   }
@@ -87,7 +92,7 @@ PrismEncoded* prismEncodeJPEG(IplImage* img, int quality) {
   tjDestroy(jpeg);
 
   if (err) {
-    printf("prism error: %s", tjGetErrorStr());
+    printError(tjGetErrorStr());
     prismRelease(enc);
     return NULL;
   }

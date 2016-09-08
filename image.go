@@ -9,8 +9,12 @@ import "C"
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"io/ioutil"
 	"runtime"
@@ -19,6 +23,8 @@ import (
 
 	"github.com/rwcarlsen/goexif/exif"
 )
+
+var PixelLimit = 75000000 // 75MP
 
 // Wrap IplImage
 
@@ -39,13 +45,18 @@ func Decode(r io.Reader) (img *Image, err error) {
 
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return
+	}
+
+	err = Validate(bytes.NewReader(b))
+	if err != nil {
+		return
 	}
 
 	iplImage := C.prismDecode(unsafe.Pointer(&b[0]), C.uint(len(b)))
 	if iplImage == nil {
 		err = errors.New("Unable to decode image")
-		return nil, err
+		return
 	}
 
 	meta, _ := exif.Decode(bytes.NewReader(b))
@@ -58,6 +69,14 @@ func (img *Image) Bytes() []byte {
 
 func (img *Image) Copy() *Image {
 	return newImage(C.cvCloneImage(img.iplImage), img.exif)
+}
+
+func Validate(r io.Reader) (err error) {
+	cfg, _, err := image.DecodeConfig(r)
+	if err == nil && cfg.Width*cfg.Height > PixelLimit {
+		err = errors.New(fmt.Sprintf("Image is too large (possible decompression bomb): %d x %d", cfg.Width, cfg.Height))
+	}
+	return
 }
 
 // image.Image interface
