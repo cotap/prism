@@ -16,7 +16,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: prism IMAGE")
+		fmt.Println("Usage: prism IMAGE WIDTH HEIGHT")
 		os.Exit(1)
 	}
 	width, _ := strconv.Atoi(os.Args[2])
