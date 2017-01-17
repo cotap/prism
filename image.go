@@ -67,36 +67,56 @@ func (img *Image) Release() {
 // image.Image interface
 
 func (img *Image) ColorModel() color.Model {
-	if img.iplImage.nChannels == 1 {
+	switch img.iplImage.nChannels * img.iplImage.depth {
+	case 8:
 		return color.GrayModel
-	} else {
-		return color.RGBAModel
+	case 16:
+		return color.Gray16Model
+	case 48, 64:
+		return color.NRGBA64Model
+	case 24, 32:
+		fallthrough
+	default:
+		return color.NRGBAModel
 	}
 }
 
-func (img *Image) At(x, y int) (c color.Color) {
+func (img *Image) At(x, y int) color.Color {
 	scalar := C.cvGet2D(unsafe.Pointer(img.iplImage), C.int(y), C.int(x))
 
 	// Convert OpenCV's BGRA representation to RGBA, which image.Image expects
-	switch img.iplImage.nChannels {
-	case 1:
-		c = color.Gray{uint8(scalar.val[0])}
-	case 4:
-		c = color.RGBA{
-			uint8(scalar.val[2]),
-			uint8(scalar.val[1]),
-			uint8(scalar.val[0]),
-			uint8(scalar.val[3]),
+	switch img.ColorModel() {
+	case color.GrayModel:
+		return color.Gray{uint8(scalar.val[0])}
+	case color.Gray16Model:
+		return color.Gray16{uint16(scalar.val[0])}
+	case color.NRGBA64Model:
+		alpha := ^uint16(0)
+		if img.iplImage.nChannels == 4 {
+			alpha = uint16(scalar.val[3])
 		}
+
+		return color.NRGBA64{
+			uint16(scalar.val[2]),
+			uint16(scalar.val[1]),
+			uint16(scalar.val[0]),
+			alpha,
+		}
+	case color.NRGBAModel:
+		fallthrough
 	default:
-		c = color.RGBA{
+		alpha := ^uint8(0)
+		if img.iplImage.nChannels == 4 {
+			alpha = uint8(scalar.val[3])
+		}
+
+		return color.NRGBA{
 			uint8(scalar.val[2]),
 			uint8(scalar.val[1]),
 			uint8(scalar.val[0]),
-			uint8(255),
+			alpha,
 		}
 	}
-	return
 }
 
 func (img *Image) Bounds() image.Rectangle {
