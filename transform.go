@@ -1,9 +1,9 @@
 package prism
 
-//#cgo pkg-config: --libs-only-L opencv
-//#cgo CFLAGS: -Wno-error=unused-function
-//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui
-//#include "opencv.h"
+//#cgo pkg-config: --libs-only-L opencv libjpeg
+//#cgo CFLAGS: -O3 -Wno-error=unused-function
+//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui -lturbojpeg
+//#include "prism.h"
 import "C"
 
 import (
@@ -25,7 +25,7 @@ func Resize(img *Image, width, height int) (resizedImg *Image, err error) {
 		C.int(C.CV_INTER_AREA),
 	)
 
-	return
+	return resizedImg, nil
 }
 
 func Reorient(img *Image) (*Image, error) {
@@ -76,9 +76,7 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 		newW = int(float64(newH) * srcAspectRatio)
 	}
 
-	resizedImg, err = Resize(img, newW, newH)
-
-	return
+	return Resize(img, newW, newH)
 }
 
 func reorientByExif(img *Image) (*Image, error) {
@@ -136,12 +134,11 @@ func Rotate90(img *Image) (rotatedImg *Image, err error) {
 		C.int(0),
 	)
 
-	return
+	return rotatedImg, nil
 }
 
-func Rotate180(img *Image) (rotatedImg *Image, err error) {
-	rotatedImg, err = Flip(img, -1)
-	return
+func Rotate180(img *Image) (*Image, error) {
+	return flip(img, -1)
 }
 
 func Rotate270(img *Image) (rotatedImg *Image, err error) {
@@ -160,20 +157,18 @@ func Rotate270(img *Image) (rotatedImg *Image, err error) {
 		C.int(1),
 	)
 
-	return
+	return rotatedImg, nil
 }
 
-func FlipH(img *Image) (flippedImg *Image, err error) {
-	flippedImg, err = Flip(img, 1)
-	return
+func FlipH(img *Image) (*Image, error) {
+	return flip(img, 1)
 }
 
-func FlipV(img *Image) (flippedImg *Image, err error) {
-	flippedImg, err = Flip(img, 0)
-	return
+func FlipV(img *Image) (*Image, error) {
+	return flip(img, 0)
 }
 
-func Flip(img *Image, axis int) (flippedImg *Image, err error) {
+func flip(img *Image, axis int) (flippedImg *Image, err error) {
 	defer recoverWithError(&err)
 
 	flippedImg = img.cloneTarget()
@@ -184,7 +179,7 @@ func Flip(img *Image, axis int) (flippedImg *Image, err error) {
 		C.int(axis),
 	)
 
-	return
+	return flippedImg, nil
 }
 
 func recoverWithError(err *error) {

@@ -1,7 +1,7 @@
 prism
 =====
 
-Fast image processing in Go, powered by OpenCV.
+Fast image processing in Go, powered by OpenCV and libjpeg-turbo.
 
 ## Example
 
@@ -24,7 +24,10 @@ func main() {
   w, _ := os.Create("resized.jpg")
   defer w.Close()
 
-  // prism.Image implements image.Image
-  jpeg.Encode(w, img, &jpeg.Options{Quality: 90})
+  // fast encoding with libjpeg-turbo
+  prism.EncodeJPEG(w, img, 90)
+
+  // or, since prism.Image implements image.Image:
+  //   jpeg.Encode(w, img, &jpeg.Options{Quality: 90})
 }
 ```
