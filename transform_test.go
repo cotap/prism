@@ -8,16 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var nerd *Image
+var mlk *Image
 
 func init() {
-	nerd = testImg("nerd.jpg")
+	mlk = testImg("mlk.png")
 }
 
 func TestResize(t *testing.T) {
-	resized, _ := Resize(nerd, 100, 100)
+	resized, _ := Resize(mlk, 100, 100)
 
-	assert.Equal(t, "e92728b1537082ee4a5e1bfd0ff242b31d6ee782", fmt.Sprintf("%x", sha1.Sum(resized.Bytes())))
+	assert.Equal(t, "a8e50040e1a0219b3f2dd7710917f101048e071e", fmt.Sprintf("%x", sha1.Sum(resized.Bytes())))
 	assert.Equal(t, 100, resized.Bounds().Dx())
 	assert.Equal(t, 100, resized.Bounds().Dy())
 }
@@ -87,41 +87,41 @@ func TestReorient8(t *testing.T) {
 }
 
 func TestRotate90(t *testing.T) {
-	rotated, _ := Rotate90(nerd)
+	rotated, _ := Rotate90(mlk)
 
-	assert.Equal(t, "f2f2b083811cbe8090201683d860c30dbec8757a", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
-	assert.Equal(t, 653, rotated.Bounds().Dx())
-	assert.Equal(t, 400, rotated.Bounds().Dy())
+	assert.Equal(t, "26837accfb14ffb4c40e4ae431a832325d304791", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
+	assert.Equal(t, 504, rotated.Bounds().Dx())
+	assert.Equal(t, 525, rotated.Bounds().Dy())
 }
 
 func TestRotate180(t *testing.T) {
-	rotated, _ := Rotate180(nerd)
+	rotated, _ := Rotate180(mlk)
 
-	assert.Equal(t, "be49e7e35b61db3ceb3e52603ded7a1e17cd8dff", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
-	assert.Equal(t, 400, rotated.Bounds().Dx())
-	assert.Equal(t, 653, rotated.Bounds().Dy())
+	assert.Equal(t, "017080651c5e51d8d07ea49de722b3f84f4b271f", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
+	assert.Equal(t, 525, rotated.Bounds().Dx())
+	assert.Equal(t, 504, rotated.Bounds().Dy())
 }
 
 func TestRotate270(t *testing.T) {
-	rotated, _ := Rotate270(nerd)
+	rotated, _ := Rotate270(mlk)
 
-	assert.Equal(t, "68dc4bd0104936f533bdd3fab7883e9b0711677f", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
-	assert.Equal(t, 653, rotated.Bounds().Dx())
-	assert.Equal(t, 400, rotated.Bounds().Dy())
+	assert.Equal(t, "302d7317bafe41022c7e0bf7020b417e586c527e", fmt.Sprintf("%x", sha1.Sum(rotated.Bytes())))
+	assert.Equal(t, 504, rotated.Bounds().Dx())
+	assert.Equal(t, 525, rotated.Bounds().Dy())
 }
 
 func TestFlipH(t *testing.T) {
-	flipped, _ := FlipH(nerd)
+	flipped, _ := FlipH(mlk)
 
-	assert.Equal(t, "f21ebf2fcda3cfd0b1512eacd9f8858c2b6d505b", fmt.Sprintf("%x", sha1.Sum(flipped.Bytes())))
-	assert.Equal(t, 400, flipped.Bounds().Dx())
-	assert.Equal(t, 653, flipped.Bounds().Dy())
+	assert.Equal(t, "92dc081f5d70eb0d2d103419dec3d6ffb416ac44", fmt.Sprintf("%x", sha1.Sum(flipped.Bytes())))
+	assert.Equal(t, 525, flipped.Bounds().Dx())
+	assert.Equal(t, 504, flipped.Bounds().Dy())
 }
 
 func TestFlipV(t *testing.T) {
-	flipped, _ := FlipV(nerd)
+	flipped, _ := FlipV(mlk)
 
-	assert.Equal(t, "f19d9ce9121772e4882e3115579332af50eaca32", fmt.Sprintf("%x", sha1.Sum(flipped.Bytes())))
-	assert.Equal(t, 400, flipped.Bounds().Dx())
-	assert.Equal(t, 653, flipped.Bounds().Dy())
+	assert.Equal(t, "3d756cbb38ec4327986d84e8971093cda2712e39", fmt.Sprintf("%x", sha1.Sum(flipped.Bytes())))
+	assert.Equal(t, 525, flipped.Bounds().Dx())
+	assert.Equal(t, 504, flipped.Bounds().Dy())
 }
