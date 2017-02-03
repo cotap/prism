@@ -1,6 +1,6 @@
 package prism
 
-//#cgo pkg-config: --libs-only-L opencv libjpeg
+//#cgo pkg-config: --libs-only-L opencv libturbojpeg
 //#cgo CFLAGS: -O3 -Wno-error=unused-function
 //#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui -lturbojpeg
 //#include "prism.h"

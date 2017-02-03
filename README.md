@@ -3,6 +3,11 @@ prism
 
 Fast image processing in Go, powered by OpenCV and libjpeg-turbo.
 
+## Dependencies
+
+- opencv 2.4.x
+- libturbo-jpeg 1.4+
+
 ## Example
 
 ```go
