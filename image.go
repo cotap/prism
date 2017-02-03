@@ -28,7 +28,7 @@ type Image struct {
 
 func newImage(iplImage *C.IplImage, meta *exif.Exif) *Image {
 	image := &Image{iplImage, meta}
-	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
+	runtime.SetFinalizer(image, func(img *Image) { img.release() })
 	return image
 }
 
@@ -48,13 +48,6 @@ func Decode(r io.Reader) (img *Image, err error) {
 
 	meta, _ := exif.Decode(bytes.NewReader(b))
 	return newImage(iplImage, meta), nil
-}
-
-func (img *Image) Release() {
-	if img.iplImage != nil {
-		C.cvReleaseImage(&img.iplImage)
-		img.iplImage = nil
-	}
 }
 
 func (img *Image) Bytes() []byte {
@@ -133,4 +126,11 @@ func (img *Image) cloneResizeTarget(width, height int) *Image {
 	size := C.CvSize{width: C.int(width), height: C.int(height)}
 	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
 	return newImage(newIpl, img.exif)
+}
+
+func (img *Image) release() {
+	if img.iplImage != nil {
+		C.cvReleaseImage(&img.iplImage)
+		img.iplImage = nil
+	}
 }
