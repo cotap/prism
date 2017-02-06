@@ -22,6 +22,14 @@ func TestResize(t *testing.T) {
 	assert.Equal(t, 100, resized.Bounds().Dy())
 }
 
+func TestFit(t *testing.T) {
+	resized, _ := Fit(mlk, 100, 100)
+
+	assert.Equal(t, "663fc1b903e0e4090f926687cc55c6829f57fa37", fmt.Sprintf("%x", sha1.Sum(resized.Bytes())))
+	assert.Equal(t, 100, resized.Bounds().Dx())
+	assert.Equal(t, 96, resized.Bounds().Dy())
+}
+
 func TestReorient1(t *testing.T) {
 	reoriented, _ := Reorient(testImg("orientations/orientation-1.jpg"))
 
@@ -124,4 +132,60 @@ func TestFlipV(t *testing.T) {
 	assert.Equal(t, "3d756cbb38ec4327986d84e8971093cda2712e39", fmt.Sprintf("%x", sha1.Sum(flipped.Bytes())))
 	assert.Equal(t, 525, flipped.Bounds().Dx())
 	assert.Equal(t, 504, flipped.Bounds().Dy())
+}
+
+func BenchmarkResizeDown(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Resize(mlk, 100, 100)
+		img.Release()
+	}
+}
+
+func BenchmarkResizeUp(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Resize(mlk, 1000, 1000)
+		img.Release()
+	}
+}
+
+func BenchmarkFit(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Fit(mlk, 100, 100)
+		img.Release()
+	}
+}
+
+func BenchmarkRotate90(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Rotate90(mlk)
+		img.Release()
+	}
+}
+
+func BenchmarkRotate180(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Rotate180(mlk)
+		img.Release()
+	}
+}
+
+func BenchmarkRotate270(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := Rotate270(mlk)
+		img.Release()
+	}
+}
+
+func BenchmarkFlipH(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := FlipH(mlk)
+		img.Release()
+	}
+}
+
+func BenchmarkFlipV(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		img, _ := FlipH(mlk)
+		img.Release()
+	}
 }

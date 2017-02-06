@@ -28,7 +28,7 @@ type Image struct {
 
 func newImage(iplImage *C.IplImage, meta *exif.Exif) *Image {
 	image := &Image{iplImage, meta}
-	runtime.SetFinalizer(image, func(img *Image) { img.release() })
+	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
 	return image
 }
 
@@ -114,6 +114,13 @@ func (img *Image) Bounds() image.Rectangle {
 	return image.Rect(0, 0, int(size.width), int(size.height))
 }
 
+func (img *Image) Release() {
+	if img.iplImage != nil {
+		C.cvReleaseImage(&img.iplImage)
+		img.iplImage = nil
+	}
+}
+
 // create target image
 
 func (img *Image) cloneTarget() *Image {
@@ -126,11 +133,4 @@ func (img *Image) cloneResizeTarget(width, height int) *Image {
 	size := C.CvSize{width: C.int(width), height: C.int(height)}
 	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
 	return newImage(newIpl, img.exif)
-}
-
-func (img *Image) release() {
-	if img.iplImage != nil {
-		C.cvReleaseImage(&img.iplImage)
-		img.iplImage = nil
-	}
 }
