@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"image"
-	"image/jpeg"
-	"image/png"
-	"io"
+	_ "image/jpeg"
+	_ "image/png"
+	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"strconv"
 
 	"github.com/cotap/prism"
@@ -16,7 +15,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: prism IMAGE WIDTH HEIGHT")
+		log.Println("Usage: prism IMAGE WIDTH HEIGHT")
 		os.Exit(1)
 	}
 	width, _ := strconv.Atoi(os.Args[2])
@@ -24,23 +23,24 @@ func main() {
 
 	// load original
 	name := os.Args[1]
-	f, err := os.Open(name)
+	b, err := ioutil.ReadFile(name)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
 
-	_, format, _ := image.DecodeConfig(io.Reader(f))
-	f.Seek(0, 0)
+	_, format, err := image.DecodeConfig(bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
 
-	img, err := prism.Decode(io.Reader(f))
+	img, err := prism.Decode(bytes.NewBuffer(b))
 	if err != nil {
 		panic(err)
 	}
 
 	reoriented, err := prism.Reorient(img)
 	if err != nil {
-		panic(err)
+		reoriented = img
 	}
 
 	resized, err := prism.Fit(reoriented, width, height)
@@ -53,19 +53,19 @@ func main() {
 	defer w.Close()
 
 	switch format {
-	case "jpeg":
-		err = jpeg.Encode(w, resized, &jpeg.Options{Quality: 85})
 	case "png":
-		err = png.Encode(w, resized)
+		err = prism.EncodePNG(w, resized, 4)
+	case "jpg", "jpeg":
+		err = prism.EncodeJPEG(w, resized, 85)
 	}
 
 	if err != nil {
 		panic(err)
 	}
 
-	// open preview
-	err = exec.Command("open", "-a", "/Applications/Preview.app", w.Name()).Run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // open preview
+	// err = exec.Command("open", "-a", "/Applications/Preview.app", w.Name()).Run()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }

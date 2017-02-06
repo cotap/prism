@@ -1,9 +1,9 @@
 package prism
 
-//#cgo pkg-config: --libs-only-L opencv
-//#cgo CFLAGS: -Wno-error=unused-function
-//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui
-//#include "opencv.h"
+//#cgo pkg-config: --libs-only-L opencv libturbojpeg
+//#cgo CFLAGS: -O3 -Wno-error=unused-function
+//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui -lturbojpeg
+//#include "prism.h"
 import "C"
 
 import (
@@ -25,7 +25,7 @@ func Resize(img *Image, width, height int) (resizedImg *Image, err error) {
 		C.int(C.CV_INTER_AREA),
 	)
 
-	return
+	return resizedImg, nil
 }
 
 func Reorient(img *Image) (*Image, error) {
@@ -76,9 +76,7 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 		newW = int(float64(newH) * srcAspectRatio)
 	}
 
-	resizedImg, err = Resize(img, newW, newH)
-
-	return
+	return Resize(img, newW, newH)
 }
 
 func reorientByExif(img *Image) (*Image, error) {
@@ -102,81 +100,67 @@ func reorientByExif(img *Image) (*Image, error) {
 	case 4:
 		img, err = FlipV(img)
 	case 5:
-		img, err = Rotate270(img)
+		img, err = Rotate90(img)
 		if err == nil {
 			img, err = FlipH(img)
 		}
 	case 6:
-		img, err = Rotate270(img)
-	case 7:
 		img, err = Rotate90(img)
+	case 7:
+		img, err = Rotate270(img)
 		if err == nil {
 			img, err = FlipH(img)
 		}
 	case 8:
-		img, err = Rotate90(img)
+		img, err = Rotate270(img)
 	}
 
 	return img, err
 }
 
-func Rotate90(img *Image) (rotatedImg *Image, err error) {
+func Rotate90(img *Image) (_ *Image, err error) {
 	defer recoverWithError(&err)
 
-	rotatedImg = img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+	rotatedImg := img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
 
 	C.cvTranspose(
 		unsafe.Pointer(img.iplImage),
 		unsafe.Pointer(rotatedImg.iplImage),
 	)
 
-	C.cvFlip(
-		unsafe.Pointer(rotatedImg.iplImage),
-		unsafe.Pointer(rotatedImg.iplImage),
-		C.int(0),
-	)
-
-	return
+	return rotatedImg, flip(rotatedImg, rotatedImg, 1)
 }
 
-func Rotate180(img *Image) (rotatedImg *Image, err error) {
-	rotatedImg, err = Flip(img, -1)
-	return
+func Rotate180(img *Image) (*Image, error) {
+	flippedImg := img.cloneTarget()
+	return flippedImg, flip(img, flippedImg, -1)
 }
 
-func Rotate270(img *Image) (rotatedImg *Image, err error) {
+func Rotate270(img *Image) (_ *Image, err error) {
 	defer recoverWithError(&err)
 
-	rotatedImg = img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+	rotatedImg := img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
 
 	C.cvTranspose(
 		unsafe.Pointer(img.iplImage),
 		unsafe.Pointer(rotatedImg.iplImage),
 	)
 
-	C.cvFlip(
-		unsafe.Pointer(rotatedImg.iplImage),
-		unsafe.Pointer(rotatedImg.iplImage),
-		C.int(1),
-	)
-
-	return
+	return rotatedImg, flip(rotatedImg, rotatedImg, 0)
 }
 
-func FlipH(img *Image) (flippedImg *Image, err error) {
-	flippedImg, err = Flip(img, 1)
-	return
+func FlipH(img *Image) (*Image, error) {
+	flippedImg := img.cloneTarget()
+	return flippedImg, flip(img, flippedImg, 1)
 }
 
-func FlipV(img *Image) (flippedImg *Image, err error) {
-	flippedImg, err = Flip(img, 0)
-	return
+func FlipV(img *Image) (*Image, error) {
+	flippedImg := img.cloneTarget()
+	return flippedImg, flip(img, flippedImg, 0)
 }
 
-func Flip(img *Image, axis int) (flippedImg *Image, err error) {
+func flip(img *Image, flippedImg *Image, axis int) (err error) {
 	defer recoverWithError(&err)
-
-	flippedImg = img.cloneTarget()
 
 	C.cvFlip(
 		unsafe.Pointer(img.iplImage),
@@ -184,7 +168,7 @@ func Flip(img *Image, axis int) (flippedImg *Image, err error) {
 		C.int(axis),
 	)
 
-	return
+	return nil
 }
 
 func recoverWithError(err *error) {

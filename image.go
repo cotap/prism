@@ -1,9 +1,9 @@
 package prism
 
-//#cgo pkg-config: --libs-only-L opencv
-//#cgo CFLAGS: -Wno-error=unused-function
-//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui
-//#include "opencv.h"
+//#cgo pkg-config: --libs-only-L opencv libturbojpeg
+//#cgo CFLAGS: -O3 -Wno-error=unused-function
+//#cgo LDFLAGS: -lopencv_imgproc -lopencv_core -lopencv_highgui -lturbojpeg
+//#include "prism.h"
 import "C"
 
 import (
@@ -28,7 +28,7 @@ type Image struct {
 
 func newImage(iplImage *C.IplImage, meta *exif.Exif) *Image {
 	image := &Image{iplImage, meta}
-	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
+	runtime.SetFinalizer(image, func(img *Image) { img.release() })
 	return image
 }
 
@@ -37,31 +37,21 @@ func Decode(r io.Reader) (img *Image, err error) {
 
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	cvMat := C.cvCreateMatHeader(1, C.int(len(b)), C.CV_8UC1)
-	C.cvSetData(unsafe.Pointer(cvMat), unsafe.Pointer(&b[0]), C.int(len(b)))
+	iplImage := C.prismDecode(unsafe.Pointer(&b[0]), C.uint(len(b)))
+	if iplImage == nil {
+		err = errors.New("Unable to decode image")
+		return nil, err
+	}
 
 	meta, _ := exif.Decode(bytes.NewReader(b))
-
-	iplImage := C.cvDecodeImage(cvMat, C.CV_LOAD_IMAGE_UNCHANGED)
-	if iplImage == nil {
-		err = errors.New("Bad image")
-		return
-	}
-
-	img = newImage(iplImage, meta)
-	C.cvReleaseMat(&cvMat)
-
-	return
+	return newImage(iplImage, meta), nil
 }
 
-func (img *Image) Release() {
-	if img.iplImage != nil {
-		C.cvReleaseImage(&img.iplImage)
-		img.iplImage = nil
-	}
+func (img *Image) Bytes() []byte {
+	return C.GoBytes(unsafe.Pointer(img.iplImage.imageData), img.iplImage.imageSize)
 }
 
 // image.Image interface
@@ -136,4 +126,11 @@ func (img *Image) cloneResizeTarget(width, height int) *Image {
 	size := C.CvSize{width: C.int(width), height: C.int(height)}
 	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
 	return newImage(newIpl, img.exif)
+}
+
+func (img *Image) release() {
+	if img.iplImage != nil {
+		C.cvReleaseImage(&img.iplImage)
+		img.iplImage = nil
+	}
 }

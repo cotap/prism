@@ -1,10 +1,10 @@
 all: test
 
 deps:
-	@go get -d -v ./...
-	@echo $(DEPS) | xargs -n1 go get -d
+	@which godep > /dev/null || go get github.com/tools/godep
+	@godep go install
 
 test: deps
-	@go list ./... | xargs -n1 go test
+	@go list ./... | grep -v /vendor/ | xargs -n1 godep go test
 
-.PNONY: all test
+.PNONY: all deps test

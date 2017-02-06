@@ -1,0 +1,27 @@
+language: go
+
+go:
+  - 1.7
+
+addons:
+  apt:
+    sources:
+      - kubuntu-backports
+    packages:
+      - libopencv-core2.4
+      - libopencv-dev
+
+cache: apt
+
+env:
+  global:
+    - LD_LIBRARY_PATH=/opt/libjpeg-turbo/lib64:$LD_LIBRARY_PATH
+    - PKG_CONFIG_PATH=/opt/libjpeg-turbo/lib64/pkgconfig:$PKG_CONFIG_PATH
+
+sudo: true
+
+before_install:
+  - wget https://downloads.sourceforge.net/project/libjpeg-turbo/1.5.1/libjpeg-turbo-official_1.5.1_amd64.deb
+  - sudo dpkg -i libjpeg-turbo-official_1.5.1_amd64.deb
+
+script: make test
