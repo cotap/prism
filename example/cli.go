@@ -38,12 +38,9 @@ func main() {
 		panic(err)
 	}
 
-	reoriented, err := prism.Reorient(img)
-	if err != nil {
-		reoriented = img
-	}
+	_ = img.Reorient()
 
-	resized, err := prism.Fit(reoriented, width, height)
+	err = img.Fit(width, height)
 	if err != nil {
 		panic(err)
 	}
@@ -54,9 +51,9 @@ func main() {
 
 	switch format {
 	case "png":
-		err = prism.EncodePNG(w, resized, 4)
+		err = prism.EncodePNG(w, img, 4)
 	case "jpg", "jpeg":
-		err = prism.EncodeJPEG(w, resized, 85)
+		err = prism.EncodeJPEG(w, img, 85)
 	}
 
 	if err != nil {

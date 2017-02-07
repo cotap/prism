@@ -7,4 +7,7 @@ deps:
 test: deps
 	@go list ./... | grep -v /vendor/ | xargs -n1 godep go test
 
+bench: deps
+	@go list ./... | grep -v /vendor/ | xargs -n1 godep go test -run=XXX -benchtime=1s -bench=.
+
 .PNONY: all deps test

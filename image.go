@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"github.com/rwcarlsen/goexif/exif"
@@ -24,11 +25,12 @@ import (
 type Image struct {
 	iplImage *C.IplImage
 	exif     *exif.Exif
+	m        *sync.Mutex
 }
 
 func newImage(iplImage *C.IplImage, meta *exif.Exif) *Image {
-	image := &Image{iplImage, meta}
-	runtime.SetFinalizer(image, func(img *Image) { img.release() })
+	image := &Image{iplImage, meta, new(sync.Mutex)}
+	runtime.SetFinalizer(image, func(img *Image) { img.Release() })
 	return image
 }
 
@@ -52,6 +54,10 @@ func Decode(r io.Reader) (img *Image, err error) {
 
 func (img *Image) Bytes() []byte {
 	return C.GoBytes(unsafe.Pointer(img.iplImage.imageData), img.iplImage.imageSize)
+}
+
+func (img *Image) Copy() *Image {
+	return newImage(C.cvCloneImage(img.iplImage), img.exif)
 }
 
 // image.Image interface
@@ -110,27 +116,13 @@ func (img *Image) At(x, y int) color.Color {
 }
 
 func (img *Image) Bounds() image.Rectangle {
-	size := C.cvGetSize(unsafe.Pointer(img.iplImage))
-	return image.Rect(0, 0, int(size.width), int(size.height))
+	return image.Rect(0, 0, int(img.iplImage.width), int(img.iplImage.height))
 }
 
-// create target image
+func (img *Image) Release() {
+	img.m.Lock()
+	defer img.m.Unlock()
 
-func (img *Image) cloneTarget() *Image {
-	return img.cloneResizeTarget(img.Bounds().Size().X, img.Bounds().Size().Y)
-}
-
-// create target image with new size, but same color depth and channels
-
-func (img *Image) cloneResizeTarget(width, height int) *Image {
-	size := C.CvSize{width: C.int(width), height: C.int(height)}
-	newIpl := C.cvCreateImage(size, img.iplImage.depth, img.iplImage.nChannels)
-	return newImage(newIpl, img.exif)
-}
-
-func (img *Image) release() {
-	if img.iplImage != nil {
-		C.cvReleaseImage(&img.iplImage)
-		img.iplImage = nil
-	}
+	C.cvReleaseImage(&img.iplImage)
+	img.iplImage = nil
 }

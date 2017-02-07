@@ -21,10 +21,9 @@ import(
 func main() {
   f, _ := os.Open("example.jpg")
 
-  var img prism.Image
-  img, _ = prism.Decode(f)
-  img, _ = prism.FlipV(img)
-  img, _ = prism.Fit(img, 500, 500)
+  img, _ := prism.Decode(f)
+  _ = img.FlipV()
+  _ = img.Fit(500, 500)
 
   w, _ := os.Create("resized.jpg")
   defer w.Close()

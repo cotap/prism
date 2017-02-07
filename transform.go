@@ -14,36 +14,66 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 )
 
-func Resize(img *Image, width, height int) (resizedImg *Image, err error) {
+func (img *Image) Resize(width, height int) (err error) {
+	img.m.Lock()
+	defer img.m.Unlock()
 	defer recoverWithError(&err)
 
-	resizedImg = img.cloneResizeTarget(width, height)
+	resizedIplImg := allocTarget(img.iplImage, width, height)
 
 	C.cvResize(
 		unsafe.Pointer(img.iplImage),
-		unsafe.Pointer(resizedImg.iplImage),
+		unsafe.Pointer(resizedIplImg),
 		C.int(C.CV_INTER_AREA),
 	)
 
-	return resizedImg, nil
+	C.cvReleaseImage(&img.iplImage)
+	img.iplImage = resizedIplImg
+
+	return nil
 }
 
-func Reorient(img *Image) (*Image, error) {
-	if img.exif != nil {
-		reorientedImg, err := reorientByExif(img)
-		if err != nil {
-			return nil, err
-		}
-		return reorientedImg, nil
+func (img *Image) Reorient() (err error) {
+	if img.exif == nil {
+		return nil
 	}
-	return img, nil
+
+	orientation, err := img.exif.Get(exif.Orientation)
+	if err != nil {
+		return err
+	}
+
+	orientationValue, err := orientation.Int(0)
+	if err != nil {
+		return err
+	}
+
+	switch orientationValue {
+	case 2:
+		err = img.FlipH()
+	case 3:
+		err = img.Rotate180()
+	case 4:
+		err = img.FlipV()
+	case 5:
+		if err = img.Rotate90(); err == nil {
+			err = img.FlipH()
+		}
+	case 6:
+		err = img.Rotate90()
+	case 7:
+		if err = img.Rotate270(); err == nil {
+			err = img.FlipH()
+		}
+	case 8:
+		err = img.Rotate270()
+	}
+
+	return err
 }
 
-func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
-	defer recoverWithError(&err)
-
+func (img *Image) Fit(width, height int) (err error) {
 	if width <= 0 && height <= 0 {
-		resizedImg = img
 		return
 	}
 
@@ -52,7 +82,6 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 	srcH := bounds.Dy()
 
 	if srcW <= width && srcH <= height {
-		resizedImg = img
 		return
 	}
 
@@ -76,99 +105,79 @@ func Fit(img *Image, width, height int) (resizedImg *Image, err error) {
 		newW = int(float64(newH) * srcAspectRatio)
 	}
 
-	return Resize(img, newW, newH)
+	return img.Resize(newW, newH)
 }
 
-func reorientByExif(img *Image) (*Image, error) {
-	var err error
-
-	orientation, err := img.exif.Get(exif.Orientation)
-	if err != nil {
-		return nil, err
-	}
-
-	orientationValue, err := orientation.Int(0)
-	if err != nil {
-		return nil, err
-	}
-
-	switch orientationValue {
-	case 2:
-		img, err = FlipH(img)
-	case 3:
-		img, err = Rotate180(img)
-	case 4:
-		img, err = FlipV(img)
-	case 5:
-		img, err = Rotate90(img)
-		if err == nil {
-			img, err = FlipH(img)
-		}
-	case 6:
-		img, err = Rotate90(img)
-	case 7:
-		img, err = Rotate270(img)
-		if err == nil {
-			img, err = FlipH(img)
-		}
-	case 8:
-		img, err = Rotate270(img)
-	}
-
-	return img, err
-}
-
-func Rotate90(img *Image) (_ *Image, err error) {
+func (img *Image) Rotate90() (err error) {
+	img.m.Lock()
+	defer img.m.Unlock()
 	defer recoverWithError(&err)
 
-	rotatedImg := img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+	newIplImg := allocTarget(img.iplImage, img.Bounds().Size().Y, img.Bounds().Size().X)
 
 	C.cvTranspose(
 		unsafe.Pointer(img.iplImage),
-		unsafe.Pointer(rotatedImg.iplImage),
+		unsafe.Pointer(newIplImg),
 	)
 
-	return rotatedImg, flip(rotatedImg, rotatedImg, 1)
+	C.cvReleaseImage(&img.iplImage)
+	img.iplImage = newIplImg
+
+	return flip(newIplImg, 1)
 }
 
-func Rotate180(img *Image) (*Image, error) {
-	flippedImg := img.cloneTarget()
-	return flippedImg, flip(img, flippedImg, -1)
+func (img *Image) Rotate180() error {
+	img.m.Lock()
+	defer img.m.Unlock()
+	return flip(img.iplImage, -1)
 }
 
-func Rotate270(img *Image) (_ *Image, err error) {
+func (img *Image) Rotate270() (err error) {
+	img.m.Lock()
+	defer img.m.Unlock()
 	defer recoverWithError(&err)
 
-	rotatedImg := img.cloneResizeTarget(img.Bounds().Size().Y, img.Bounds().Size().X)
+	newIplImg := allocTarget(img.iplImage, img.Bounds().Size().Y, img.Bounds().Size().X)
 
 	C.cvTranspose(
 		unsafe.Pointer(img.iplImage),
-		unsafe.Pointer(rotatedImg.iplImage),
+		unsafe.Pointer(newIplImg),
 	)
 
-	return rotatedImg, flip(rotatedImg, rotatedImg, 0)
+	C.cvReleaseImage(&img.iplImage)
+	img.iplImage = newIplImg
+
+	return flip(newIplImg, 0)
 }
 
-func FlipH(img *Image) (*Image, error) {
-	flippedImg := img.cloneTarget()
-	return flippedImg, flip(img, flippedImg, 1)
+func (img *Image) FlipH() error {
+	img.m.Lock()
+	defer img.m.Unlock()
+	return flip(img.iplImage, 1)
 }
 
-func FlipV(img *Image) (*Image, error) {
-	flippedImg := img.cloneTarget()
-	return flippedImg, flip(img, flippedImg, 0)
+func (img *Image) FlipV() error {
+	img.m.Lock()
+	defer img.m.Unlock()
+	return flip(img.iplImage, 0)
 }
 
-func flip(img *Image, flippedImg *Image, axis int) (err error) {
+func flip(iplImage *C.IplImage, axis int) (err error) {
 	defer recoverWithError(&err)
 
 	C.cvFlip(
-		unsafe.Pointer(img.iplImage),
-		unsafe.Pointer(flippedImg.iplImage),
+		unsafe.Pointer(iplImage),
+		unsafe.Pointer(iplImage),
 		C.int(axis),
 	)
 
 	return nil
+}
+
+// create target image with new size, but same color depth and channels
+func allocTarget(iplImage *C.IplImage, width, height int) *C.IplImage {
+	size := C.CvSize{width: C.int(width), height: C.int(height)}
+	return C.cvCreateImage(size, iplImage.depth, iplImage.nChannels)
 }
 
 func recoverWithError(err *error) {
