@@ -20,15 +20,6 @@ func init() {
 	lenna = testImg("lenna.png")
 }
 
-func testImg(name string) *Image {
-	b, err := ioutil.ReadFile("./testdata/" + name)
-	img, err := Decode(bytes.NewBuffer(b))
-	if err != nil {
-		panic(err)
-	}
-	return img
-}
-
 func TestEncodeJPEG85(t *testing.T) {
 	var enc bytes.Buffer
 	EncodeJPEG(bufio.NewWriter(&enc), lenna, 85)

@@ -20,6 +20,15 @@ func init() {
 	lennaPNG = png
 }
 
+func testImg(name string) *Image {
+	b, err := ioutil.ReadFile("./testdata/" + name)
+	img, err := Decode(bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
+	return img
+}
+
 func TestDecodeJPEG(t *testing.T) {
 	img, _ := Decode(bytes.NewBuffer(lennaJPG))
 	assert.Equal(t, "968a15332343a2794fe7b55f65bd02635e173aad", fmt.Sprintf("%x", sha1.Sum(img.Bytes())))
