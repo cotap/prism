@@ -33,13 +33,15 @@ func TestDecodePNG(t *testing.T) {
 func BenchmarkDecodeJPEG(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		buffer := bytes.NewBuffer(lennaJPG)
-		Decode(buffer)
+		img, _ := Decode(buffer)
+		img.Release()
 	}
 }
 
 func BenchmarkDecodePNG(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		buffer := bytes.NewBuffer(lennaPNG)
-		Decode(buffer)
+		img, _ := Decode(buffer)
+		img.Release()
 	}
 }
