@@ -8,9 +8,9 @@
 #include <turbojpeg.h>
 
 typedef struct {
-    unsigned char* buffer;
-    unsigned long size;
-    CvMat* _mat;
+  unsigned char* buffer;
+  unsigned long size;
+  CvMat* _mat;
 } PrismEncoded;
 
 PrismEncoded* prismEncodeJPEG(IplImage* img, int quality);

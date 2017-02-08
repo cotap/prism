@@ -3,7 +3,7 @@
 int isRecoverableError(char* errorStr) {
   if (!strcmp(errorStr, "Invalid SOS parameters for sequential JPEG") ||
       !strcmp(errorStr, "Premature end of JPEG file")) {
-      return 1;
+    return 1;
   }
   return 0;
 }
@@ -40,8 +40,8 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
 
   unsigned char* buffer = cvAlloc(width * height * channels);
   err = tjDecompress2(
-    jpeg, (unsigned char*)data, dataSize, buffer, 0, 0, 0, pixelFmt, TJFLAG_FASTDCT
-  );
+          jpeg, (unsigned char*)data, dataSize, buffer, 0, 0, 0, pixelFmt, TJFLAG_FASTDCT
+        );
   tjDestroy(jpeg);
 
   if (err) {
@@ -61,18 +61,18 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
 PrismEncoded* prismEncodeJPEG(IplImage* img, int quality) {
   int pixFmt, subsamp;
 
-  switch(img->nChannels) {
-    case 1:
-      pixFmt = TJPF_GRAY;
-      subsamp = TJSAMP_GRAY;
-      break;
-    case 4:
-      pixFmt = TJPF_BGRA;
-      subsamp = TJSAMP_420;
-      break;
-    default:
-      pixFmt = TJPF_BGR;
-      subsamp = TJSAMP_420;
+  switch (img->nChannels) {
+  case 1:
+    pixFmt = TJPF_GRAY;
+    subsamp = TJSAMP_GRAY;
+    break;
+  case 4:
+    pixFmt = TJPF_BGRA;
+    subsamp = TJSAMP_420;
+    break;
+  default:
+    pixFmt = TJPF_BGR;
+    subsamp = TJSAMP_420;
   }
 
   int err;
@@ -81,9 +81,9 @@ PrismEncoded* prismEncodeJPEG(IplImage* img, int quality) {
   PrismEncoded* enc = calloc(1, sizeof(PrismEncoded));
 
   err = tjCompress2(
-    jpeg, (unsigned char*)img->imageData, size.width, img->widthStep,
-    size.height, pixFmt, &enc->buffer, &enc->size, subsamp, quality, 0
-  );
+          jpeg, (unsigned char*)img->imageData, size.width, img->widthStep,
+          size.height, pixFmt, &enc->buffer, &enc->size, subsamp, quality, 0
+        );
   tjDestroy(jpeg);
 
   if (err) {
