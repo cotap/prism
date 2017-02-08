@@ -123,6 +123,8 @@ func (img *Image) Release() {
 	img.m.Lock()
 	defer img.m.Unlock()
 
-	C.cvReleaseImage(&img.iplImage)
-	img.iplImage = nil
+	if img.iplImage != nil {
+		C.cvReleaseImage(&img.iplImage)
+		img.iplImage = nil
+	}
 }
