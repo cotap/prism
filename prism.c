@@ -37,7 +37,7 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
   tjDestroy(jpeg);
 
   if (err) {
-    free(buffer);
+    cvFree(&buffer);
     printf("prism error: %s", tjGetErrorStr());
     return NULL;
   }
