@@ -1,5 +1,6 @@
-prism
-=====
+# Prism
+
+[![Build Status](https://travis-ci.org/cotap/prism.svg?branch=master)](https://travis-ci.org/cotap/prism)
 
 Fast Go image encoding, decoding, and transformations using OpenCV, libpng, and libjpeg-turbo.
 
