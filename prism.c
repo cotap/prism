@@ -1,5 +1,13 @@
 #include <prism.h>
 
+int isRecoverableError(char* errorStr) {
+  if (!strcmp(errorStr, "Invalid SOS parameters for sequential JPEG") ||
+      !strcmp(errorStr, "Premature end of JPEG file")) {
+      return 1;
+  }
+  return 0;
+}
+
 IplImage* prismDecode(void* data, unsigned int dataSize) {
   int err;
   IplImage* iplImage;
@@ -20,7 +28,7 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
       return iplImage;
     }
 
-    printf("prism error: %s", tjGetErrorStr());
+    printf("prism error: %s\n", tjGetErrorStr());
     return NULL;
   }
 
@@ -37,9 +45,12 @@ IplImage* prismDecode(void* data, unsigned int dataSize) {
   tjDestroy(jpeg);
 
   if (err) {
-    cvFree(&buffer);
-    printf("prism error: %s", tjGetErrorStr());
-    return NULL;
+    char* errorStr = tjGetErrorStr();
+    if (!isRecoverableError(errorStr)) {
+      cvFree(&buffer);
+      printf("prism error: %s\n", errorStr);
+      return NULL;
+    }
   }
 
   iplImage = cvCreateImageHeader(cvSize(width, height), IPL_DEPTH_8U, channels);
