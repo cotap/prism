@@ -1,4 +1,5 @@
 #include <prism.h>
+#include <opencv2/imgcodecs/imgcodecs_c.h>
 
 int isRecoverableError(char* errorStr) {
   if (!strcmp(errorStr, "Invalid SOS parameters for sequential JPEG") ||
