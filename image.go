@@ -53,9 +53,11 @@ func Decode(r io.Reader) (img *Image, err error) {
 		return
 	}
 
+	fmt.Printf("data: %v\n", unsafe.Pointer(&b[0]))
+	fmt.Printf("dataSize: %v\n", C.uint(len(b)))
 	iplImage := C.prismDecode(unsafe.Pointer(&b[0]), C.uint(len(b)))
 	if iplImage == nil {
-		err = errors.New("Unable to decode image")
+		err = errors.New("unable to decode image")
 		return
 	}
 

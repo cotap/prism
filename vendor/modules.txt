@@ -1,0 +1,7 @@
+# github.com/rwcarlsen/goexif v0.0.0-20150520140647-709fab3d192d
+## explicit
+github.com/rwcarlsen/goexif/exif
+github.com/rwcarlsen/goexif/tiff
+# github.com/stretchr/testify v0.0.0-20150527144555-232e8563676c
+## explicit
+github.com/stretchr/testify/assert
